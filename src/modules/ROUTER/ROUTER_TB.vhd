@@ -1,0 +1,312 @@
+-- COMPREHENSIVE TESTBENCH FOR THE ROUTER
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.ALL;
+USE IEEE.NUMERIC_STD.ALL;
+USE WORK.ROUTER_PKG.ALL;
+
+
+ENTITY ROUTER_TB IS
+END ENTITY ROUTER_TB;
+
+ARCHITECTURE TB OF ROUTER_TB IS
+
+    -- Component declaration
+    COMPONENT ROUTER IS
+	GENERIC(
+		NODE_ADDRESS : NETWORK_ADDR
+	);
+	PORT(
+		-- GLOBAL CLOCK AND RESET SIGNALS
+        	CLK               : IN STD_LOGIC;
+        	RST               : IN STD_LOGIC;
+		-- HANDLING INPUT BUFFERS
+		-- INPUT PORTS FOR ADJACENT ROUTERS
+        	NORTH_DATA_IN     : IN FLIT;
+        	EAST_DATA_IN      : IN FLIT;
+        	SOUTH_DATA_IN     : IN FLIT;
+        	WEST_DATA_IN      : IN FLIT;
+		-- PORTS FOR CHECKING CREDIT OUT OF ADJACENT BUFFERS
+        	NORTH_CREDIT_IN   : IN STD_LOGIC;
+        	EAST_CREDIT_IN    : IN STD_LOGIC;
+        	SOUTH_CREDIT_IN   : IN STD_LOGIC;
+        	WEST_CREDIT_IN    : IN STD_LOGIC;
+		-- WRITE REQUEST SIGNALS COMES FROM ADJACENT ROUTERS
+        	NORTH_WR_REQ_IN   : IN STD_LOGIC;
+        	EAST_WR_REQ_IN    : IN STD_LOGIC;
+        	SOUTH_WR_REQ_IN   : IN STD_LOGIC;
+        	WEST_WR_REQ_IN    : IN STD_LOGIC;
+		-- OUTPUT PORTS TO ADJACENT ROUTERS 
+        	NORTH_DATA_OUT    : OUT FLIT;
+        	EAST_DATA_OUT     : OUT FLIT;
+        	SOUTH_DATA_OUT    : OUT FLIT;
+        	WEST_DATA_OUT     : OUT FLIT;
+		-- ROUTER'S OUTPUT SIGNALS
+		LOCAL_CREDIT_OUT  : OUT STD_LOGIC;
+        	NORTH_CREDIT_OUT  : OUT STD_LOGIC;
+        	EAST_CREDIT_OUT   : OUT STD_LOGIC;
+        	SOUTH_CREDIT_OUT  : OUT STD_LOGIC;
+        	WEST_CREDIT_OUT   : OUT STD_LOGIC;
+		-- WRITE REQUEST SIGNALS TO ADJACENT ROUTERS
+        	NORTH_WR_REQ_OUT  : OUT STD_LOGIC;
+        	EAST_WR_REQ_OUT   : OUT STD_LOGIC;
+        	SOUTH_WR_REQ_OUT  : OUT STD_LOGIC;
+        	WEST_WR_REQ_OUT   : OUT STD_LOGIC
+		-- IP CORE TEST SIGNAL
+		-- IP_CORE_BUSY      : OUT STD_LOGIC
+	);
+    END COMPONENT;
+
+    -- TEST SIGNALS
+    -- ROUTER SIGNALS
+    SIGNAL CLK, RST : STD_LOGIC := '0';
+    
+    -- INPUT SIGNALS TO ROUTER
+    SIGNAL NORTH_DATA_IN,   EAST_DATA_IN,   SOUTH_DATA_IN,   WEST_DATA_IN   : FLIT      := (OTHERS => '0');
+    SIGNAL NORTH_CREDIT_IN, EAST_CREDIT_IN, SOUTH_CREDIT_IN, WEST_CREDIT_IN : STD_LOGIC := '0';
+    SIGNAL NORTH_WR_REQ_IN, EAST_WR_REQ_IN, SOUTH_WR_REQ_IN, WEST_WR_REQ_IN : STD_LOGIC := '0';
+    
+    -- OUTPUT SIGNALS FROM ROUTER
+    SIGNAL                   NORTH_DATA_OUT,   EAST_DATA_OUT,   SOUTH_DATA_OUT,   WEST_DATA_OUT   : FLIT      := (OTHERS => '0');
+    SIGNAL LOCAL_CREDIT_OUT, NORTH_CREDIT_OUT, EAST_CREDIT_OUT, SOUTH_CREDIT_OUT, WEST_CREDIT_OUT : STD_LOGIC := '0';
+    SIGNAL                   NORTH_WR_REQ_OUT, EAST_WR_REQ_OUT, SOUTH_WR_REQ_OUT, WEST_WR_REQ_OUT : STD_LOGIC := '0';
+    
+    -- IP CORE TEST INTERFACE
+    SIGNAL IP_FLIT_DEST_ADDR                        : NETWORK_ADDR := (OTHERS => '0');
+    SIGNAL IP_CONFIG_START, IP_CONFIG_DONE, IP_BUSY : STD_LOGIC := '0';
+    -- ZEROS
+    SIGNAL ZERO_NORTH, ZERO_EAST, ZERO_SOUTH, ZERO_WEST : FLIT := (OTHERS => '0');
+    
+    -- CLOCK PERIOD
+    CONSTANT CLK_PERIOD : TIME := 100 NS;
+    
+    -- Test scenarios type
+    type test_scenario is record
+        name             : string(1 to 20);
+        source_port      : integer range 0 to ADDRESS_WIDTH - 1; -- 0:local, 1:north, 2:east, 3:south, 4:west
+        dest_addr        : network_addr;
+        credit_available : boolean;
+    end record;
+    
+    -- Test scenarios array
+    type test_scenarios_array is array (natural range <>) of test_scenario;
+    constant test_scenarios : test_scenarios_array := (
+        ("Local to North      ", 0, "00001", true),   -- Send from local to north
+        ("North to Local      ", 1, node5_address, true), -- Send from north to local
+        ("East to South       ", 2, "00011", true),   -- Send from east to south
+        ("South to West       ", 3, "00100", true),   -- Send from south to west
+        ("West to East        ", 4, "00010", true)    -- Send from west to east
+    );
+
+BEGIN
+
+-- CLOCK GENERATION
+CLK_PROCESS : PROCESS
+BEGIN
+    CLK <= '0';
+    WAIT FOR CLK_PERIOD/2;
+    CLK <= '1';
+    WAIT FOR CLK_PERIOD/2;
+END PROCESS;
+
+-- ROUTER INSTANTITION
+DUT : ROUTER
+    GENERIC MAP(
+        NODE_ADDRESS => NODE5_ADDRESS
+    )
+    PORT MAP(
+        
+    	CLK               => CLK,
+    	RST               => RST,
+    	NORTH_DATA_IN     => NORTH_DATA_IN,
+    	EAST_DATA_IN      => EAST_DATA_IN,
+    	SOUTH_DATA_IN     => SOUTH_DATA_IN,
+    	WEST_DATA_IN      => WEST_DATA_IN,
+    	NORTH_CREDIT_IN   => NORTH_CREDIT_IN,
+    	EAST_CREDIT_IN    => EAST_CREDIT_IN,
+    	SOUTH_CREDIT_IN   => SOUTH_CREDIT_IN,
+    	WEST_CREDIT_IN    => WEST_CREDIT_IN,
+    	NORTH_WR_REQ_IN   => NORTH_WR_REQ_IN,
+    	EAST_WR_REQ_IN    => EAST_WR_REQ_IN,
+    	SOUTH_WR_REQ_IN   => SOUTH_WR_REQ_IN,
+    	WEST_WR_REQ_IN    => WEST_WR_REQ_IN,
+    	NORTH_DATA_OUT    => NORTH_DATA_OUT,
+    	EAST_DATA_OUT     => EAST_DATA_OUT,
+    	SOUTH_DATA_OUT    => SOUTH_DATA_OUT,
+    	WEST_DATA_OUT     => WEST_DATA_OUT,
+	LOCAL_CREDIT_OUT  => LOCAL_CREDIT_OUT,
+    	NORTH_CREDIT_OUT  => NORTH_CREDIT_OUT,
+    	EAST_CREDIT_OUT   => EAST_CREDIT_OUT,
+    	SOUTH_CREDIT_OUT  => SOUTH_CREDIT_OUT,
+    	WEST_CREDIT_OUT   => WEST_CREDIT_OUT,
+    	NORTH_WR_REQ_OUT  => NORTH_WR_REQ_OUT,
+    	EAST_WR_REQ_OUT   => EAST_WR_REQ_OUT,
+    	SOUTH_WR_REQ_OUT  => SOUTH_WR_REQ_OUT,
+    	WEST_WR_REQ_OUT   => WEST_WR_REQ_OUT
+    );
+
+-- STIMULUS PROCESS
+STIMULUS : PROCESS
+    VARIABLE HEADER_FLIT, TAIL_FLIT : FLIT;
+BEGIN
+    -- INITIALIZE INPUTS 
+    RST             <= '1';
+    NORTH_DATA_IN   <= (OTHERS => '0');  -- NO DATA AT START
+    EAST_DATA_IN    <= (OTHERS => '0');
+    SOUTH_DATA_IN   <= (OTHERS => '0');
+    WEST_DATA_IN    <= (OTHERS => '0');
+    NORTH_CREDIT_IN <= '0';              -- NO CREDIT AT START
+    EAST_CREDIT_IN  <= '0';
+    SOUTH_CREDIT_IN <= '0';
+    WEST_CREDIT_IN  <= '0';
+    NORTH_WR_REQ_IN <= '0';              -- NO WRITE REQUEST AT START
+    EAST_WR_REQ_IN  <= '0';
+    SOUTH_WR_REQ_IN <= '0';
+    WEST_WR_REQ_IN  <= '0';
+    
+    WAIT FOR CLK_PERIOD * 2;
+    RST <= '0';
+    WAIT FOR CLK_PERIOD * 2;
+    
+    -- MAKE CREDITS AVAILABLE ON ALL OUTPUT PORTS (NO INPUT BUFFER IS FULL)
+    NORTH_CREDIT_OUT <= '0';  
+    EAST_CREDIT_OUT  <= '0';
+    SOUTH_CREDIT_OUT <= '0';
+    WEST_CREDIT_OUT  <= '0';
+    
+    REPORT "STARTING ROUTER TESTBENCH..." SEVERITY NOTE;
+    
+    -- START TEST SCENARIOS
+    FOR I IN TEST_SCENARIOS'RANGE LOOP
+        REPORT "RUNNING TEST: " & TEST_SCENARIOS(I).NAME SEVERITY NOTE;
+        
+        -- CREATE HEADER FLIT
+    HEADER_FLIT := (OTHERS => '0');
+        HEADER_FLIT(11 DOWNTO 10) := "00"; 
+        HEADER_FLIT(9 DOWNTO 5) := NODE5_ADDRESS; 
+        HEADER_FLIT(4 DOWNTO 0) := TEST_SCENARIOS(I).DEST_ADDR;
+        
+        -- CREATE TAIL FLIT
+    TAIL_FLIT := (OTHERS => '0');
+        TAIL_FLIT(11 DOWNTO 10) := "10"; 
+        TAIL_FLIT(9 DOWNTO 5) := NODE5_ADDRESS;  
+        TAIL_FLIT(4 DOWNTO 0) := TEST_SCENARIOS(I).DEST_ADDR; 
+        
+        -- SEND DATA BASED ON SOURCE PORT
+        CASE TEST_SCENARIOS(I).SOURCE_PORT IS
+            WHEN 0 => -- LOCAL (THROUGH IP CORE SIMULATION)
+                -- SIMULATE IP CORE SENDING DATA
+                IP_FLIT_DEST_ADDR <= TEST_SCENARIOS(I).DEST_ADDR;
+                IP_CONFIG_START <= '1';
+                WAIT FOR CLK_PERIOD;
+                IP_CONFIG_START <= '0';
+                -- WAIT FOR TRANSMISSION TO COMPLETE
+                WAIT UNTIL IP_CONFIG_DONE = '1' FOR CLK_PERIOD * 10;
+                
+            WHEN 1 => -- NORTH
+                NORTH_WR_REQ_IN <= '1';
+                NORTH_DATA_IN <= HEADER_FLIT;
+                WAIT FOR CLK_PERIOD;
+                NORTH_DATA_IN <= TAIL_FLIT;
+                WAIT FOR CLK_PERIOD;
+                NORTH_WR_REQ_IN <= '0';
+                
+            WHEN 2 => -- EAST
+                EAST_WR_REQ_IN <= '1';
+                EAST_DATA_IN <= HEADER_FLIT;
+                WAIT FOR CLK_PERIOD;
+                EAST_DATA_IN <= TAIL_FLIT;
+                WAIT FOR CLK_PERIOD;
+                EAST_WR_REQ_IN <= '0';
+                
+            WHEN 3 => -- SOUTH
+                SOUTH_WR_REQ_IN <= '1';
+                SOUTH_DATA_IN <= HEADER_FLIT;
+                WAIT FOR CLK_PERIOD;
+                SOUTH_DATA_IN <= TAIL_FLIT;
+                WAIT FOR CLK_PERIOD;
+                SOUTH_WR_REQ_IN <= '0';
+                
+            WHEN 4 => -- WEST
+                WEST_WR_REQ_IN <= '1';
+                WEST_DATA_IN <= HEADER_FLIT;
+                WAIT FOR CLK_PERIOD;
+                WEST_DATA_IN <= TAIL_FLIT;
+                WAIT FOR CLK_PERIOD;
+                WEST_WR_REQ_IN <= '0';
+                
+        END CASE;
+        
+        -- WAIT FOR SOME CYCLES TO OBSERVE THE BEHAVIOR
+        WAIT FOR CLK_PERIOD * 5;
+        
+        REPORT "COMPLETED TEST: " & TEST_SCENARIOS(I).NAME SEVERITY NOTE;
+    END LOOP;
+    
+    -- TEST CREDIT FLOW CONTROL
+    REPORT "TESTING CREDIT-BASED FLOW CONTROL..." SEVERITY NOTE;
+    
+    -- REMOVE CREDIT FROM NORTH PORT
+    NORTH_CREDIT_IN <= '1';  -- '1' MEANS NO CREDIT AVAILABLE (FULL)
+    WAIT FOR CLK_PERIOD * 2;
+    
+    -- TRY TO SEND DATA TO NORTH
+    NORTH_WR_REQ_IN <= '1';
+    NORTH_DATA_IN(11 DOWNTO 10) <= "00";
+    NORTH_DATA_IN(9 DOWNTO 5) <= "00010";  -- SOURCE
+    NORTH_DATA_IN(4 DOWNTO 0) <= "00001";  -- DEST (NORTH)
+    WAIT FOR CLK_PERIOD;
+    NORTH_WR_REQ_IN <= '0';
+    
+    -- DATA SHOULD BE STUCK IN BUFFER DUE TO NO CREDIT
+    WAIT FOR CLK_PERIOD * 5;
+    
+    -- RESTORE CREDIT
+    NORTH_CREDIT_IN <= '0';
+    WAIT FOR CLK_PERIOD * 5;
+    
+    -- DATA SHOULD NOW FLOW THROUGH
+    
+    REPORT "ALL TESTS COMPLETED!" SEVERITY NOTE;
+    WAIT;
+END PROCESS;
+
+-- MONITOR PROCESS TO OBSERVE ROUTER BEHAVIOR
+MONITOR : PROCESS(CLK)
+BEGIN
+    IF RISING_EDGE(CLK) THEN
+        -- MONITOR OUTPUT DATA
+        IF NORTH_DATA_OUT /= ZERO_NORTH THEN
+            REPORT "NORTH OUTPUT: " & TO_STRING(NORTH_DATA_OUT) SEVERITY NOTE;
+        END IF;
+        IF EAST_DATA_OUT  /= ZERO_EAST  THEN
+            REPORT "EAST OUTPUT: " & TO_STRING(EAST_DATA_OUT)   SEVERITY NOTE;
+        END IF;
+        IF SOUTH_DATA_OUT /= ZERO_SOUTH THEN
+            REPORT "SOUTH OUTPUT: " & TO_STRING(SOUTH_DATA_OUT) SEVERITY NOTE;
+        END IF;
+        IF WEST_DATA_OUT  /= ZERO_WEST  THEN
+            REPORT "WEST OUTPUT: " & TO_STRING(WEST_DATA_OUT)   SEVERITY NOTE;
+        END IF;
+        
+        -- MONITOR CREDIT SIGNALS
+        IF LOCAL_CREDIT_OUT = '1' THEN
+            REPORT "LOCAL BUFFER FULL" SEVERITY NOTE;
+        END IF;
+    END IF;
+END PROCESS;
+
+-- SIMPLE IP CORE SIMULATOR (SINCE IP CORE IS INSIDE ROUTER)
+IP_CORE_SIM : PROCESS
+BEGIN
+    WAIT UNTIL IP_CONFIG_START = '1';
+    IP_CONFIG_DONE <= '0';
+    
+    -- SIMULATE IP CORE PROCESSING DELAY
+    WAIT FOR CLK_PERIOD * 3;
+    
+    -- SIMULATE SUCCESSFUL TRANSMISSION
+    IP_CONFIG_DONE <= '1';
+    WAIT FOR CLK_PERIOD;
+    IP_CONFIG_DONE <= '0';
+END PROCESS;
+END ARCHITECTURE;

@@ -1,0 +1,387 @@
+-- TESTBENCH OF ROUTERS 5 AND 6 CONNECTED MODULE
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.ALL;
+USE IEEE.NUMERIC_STD.ALL;
+USE WORK.ROUTER_PKG.ALL;
+
+ENTITY ROUTERS_5_AND_6_TB IS
+END ENTITY ROUTERS_5_AND_6_TB;
+
+ARCHITECTURE BEHAVIORAL OF ROUTERS_5_AND_6_TB IS
+
+    -- COMPONENT DECLARATION
+    COMPONENT ROUTERS_5_AND_6 IS
+        GENERIC(
+            ROUTER5_ADDRESS : NETWORK_ADDR;
+            ROUTER6_ADDRESS : NETWORK_ADDR
+        );
+        PORT(
+            CLK                 : IN STD_LOGIC;
+            RST                 : IN STD_LOGIC;
+            NORTH_DATA_IN_5     : IN FLIT;
+            SOUTH_DATA_IN_5     : IN FLIT;
+            WEST_DATA_IN_5      : IN FLIT;
+            NORTH_DATA_IN_6     : IN FLIT;
+            EAST_DATA_IN_6      : IN FLIT;
+            SOUTH_DATA_IN_6     : IN FLIT;
+            NORTH_CREDIT_IN_5   : IN STD_LOGIC;
+            SOUTH_CREDIT_IN_5   : IN STD_LOGIC;
+            WEST_CREDIT_IN_5    : IN STD_LOGIC;
+            NORTH_CREDIT_IN_6   : IN STD_LOGIC;
+            EAST_CREDIT_IN_6    : IN STD_LOGIC;
+            SOUTH_CREDIT_IN_6   : IN STD_LOGIC;
+            NORTH_WR_REQ_IN_5   : IN STD_LOGIC;
+            SOUTH_WR_REQ_IN_5   : IN STD_LOGIC;
+            WEST_WR_REQ_IN_5    : IN STD_LOGIC;
+            NORTH_WR_REQ_IN_6   : IN STD_LOGIC;
+            EAST_WR_REQ_IN_6    : IN STD_LOGIC;
+            SOUTH_WR_REQ_IN_6   : IN STD_LOGIC;
+            LOCAL_DATA_OUT_5    : OUT FLIT;
+            NORTH_DATA_OUT_5    : OUT FLIT;
+            SOUTH_DATA_OUT_5    : OUT FLIT;
+            WEST_DATA_OUT_5     : OUT FLIT;
+            LOCAL_DATA_OUT_6    : OUT FLIT;
+            NORTH_DATA_OUT_6    : OUT FLIT;
+            EAST_DATA_OUT_6     : OUT FLIT;
+            SOUTH_DATA_OUT_6    : OUT FLIT;
+            LOCAL_CREDIT_OUT_5  : OUT STD_LOGIC;
+            NORTH_CREDIT_OUT_5  : OUT STD_LOGIC;
+            SOUTH_CREDIT_OUT_5  : OUT STD_LOGIC;
+            WEST_CREDIT_OUT_5   : OUT STD_LOGIC;
+            LOCAL_CREDIT_OUT_6  : OUT STD_LOGIC;
+            NORTH_CREDIT_OUT_6  : OUT STD_LOGIC;
+            EAST_CREDIT_OUT_6   : OUT STD_LOGIC;
+            SOUTH_CREDIT_OUT_6  : OUT STD_LOGIC;
+            NORTH_WR_REQ_OUT_5  : OUT STD_LOGIC;
+            SOUTH_WR_REQ_OUT_5  : OUT STD_LOGIC;
+            WEST_WR_REQ_OUT_5   : OUT STD_LOGIC;
+            NORTH_WR_REQ_OUT_6  : OUT STD_LOGIC;
+            EAST_WR_REQ_OUT_6   : OUT STD_LOGIC;
+            SOUTH_WR_REQ_OUT_6  : OUT STD_LOGIC;
+            FLIT_DEST_ADDR_TO_NI_5 : IN    NETWORK_ADDR;
+            HEAD_OR_TAIL_5         : IN    STD_LOGIC;
+            VALID_TO_NI_5          : IN    STD_LOGIC;
+            READY_FROM_NI_5        : OUT   STD_LOGIC;
+            READY_TO_NI_5          : IN    STD_LOGIC;                                    
+            PAYLOAD_FORM_NI_5      : OUT   STD_LOGIC_VECTOR(ADDRESS_WIDTH - 1 DOWNTO 0);
+            VALID_FROM_NI_5        : OUT   STD_LOGIC;
+            FLIT_DEST_ADDR_TO_NI_6 : IN    NETWORK_ADDR;
+            HEAD_OR_TAIL_6         : IN    STD_LOGIC;
+            VALID_TO_NI_6          : IN    STD_LOGIC;
+            READY_FROM_NI_6        : OUT   STD_LOGIC;
+            READY_TO_NI_6          : IN    STD_LOGIC;                                    
+            PAYLOAD_FORM_NI_6      : OUT   STD_LOGIC_VECTOR(ADDRESS_WIDTH - 1 DOWNTO 0);
+            VALID_FROM_NI_6        : OUT   STD_LOGIC
+        );
+    END COMPONENT;
+
+    -- CONSTANTS
+    CONSTANT CLK_PERIOD : TIME := 10 NS;
+    CONSTANT ROUTER5_ADDR : NETWORK_ADDR := NODE5_ADDRESS; -- 5'TH ROUTER ADDRESS
+    CONSTANT ROUTER6_ADDR : NETWORK_ADDR := NODE6_ADDRESS; -- 6'TH ROUTER ADDRESS
+    
+    -- TEST SIGNALS
+    SIGNAL CLK, RST : STD_LOGIC := '0';
+    
+    -- INPUT SIGNALS
+    SIGNAL NORTH_DATA_IN_5,   SOUTH_DATA_IN_5,   WEST_DATA_IN_5    : FLIT;
+    SIGNAL NORTH_DATA_IN_6,   EAST_DATA_IN_6,    SOUTH_DATA_IN_6   : FLIT;
+    SIGNAL NORTH_CREDIT_IN_5, SOUTH_CREDIT_IN_5, WEST_CREDIT_IN_5  : STD_LOGIC;
+    SIGNAL NORTH_CREDIT_IN_6, EAST_CREDIT_IN_6,  SOUTH_CREDIT_IN_6 : STD_LOGIC;
+    SIGNAL NORTH_WR_REQ_IN_5, SOUTH_WR_REQ_IN_5, WEST_WR_REQ_IN_5  : STD_LOGIC;
+    SIGNAL NORTH_WR_REQ_IN_6, EAST_WR_REQ_IN_6,  SOUTH_WR_REQ_IN_6 : STD_LOGIC;
+    SIGNAL FLIT_DEST_ADDR_TO_NI_5                                  : NETWORK_ADDR;
+    SIGNAL VALID_TO_NI_5, READY_TO_NI_5, HEAD_OR_TAIL_5            : STD_LOGIC;
+    SIGNAL FLIT_DEST_ADDR_TO_NI_6                                  : NETWORK_ADDR;
+    SIGNAL VALID_TO_NI_6, READY_TO_NI_6, HEAD_OR_TAIL_6            : STD_LOGIC;
+    
+    -- Output signals
+    SIGNAL NORTH_DATA_OUT_5, SOUTH_DATA_OUT_5, WEST_DATA_OUT_5     : FLIT;
+    SIGNAL NORTH_DATA_OUT_6, EAST_DATA_OUT_6, SOUTH_DATA_OUT_6     : FLIT;
+    SIGNAL LOCAL_CREDIT_OUT_5, NORTH_CREDIT_OUT_5, SOUTH_CREDIT_OUT_5, WEST_CREDIT_OUT_5 : STD_LOGIC;
+    SIGNAL LOCAL_CREDIT_OUT_6, NORTH_CREDIT_OUT_6, EAST_CREDIT_OUT_6, SOUTH_CREDIT_OUT_6 : STD_LOGIC;
+    SIGNAL NORTH_WR_REQ_OUT_5, SOUTH_WR_REQ_OUT_5, WEST_WR_REQ_OUT_5                     : STD_LOGIC;
+    SIGNAL NORTH_WR_REQ_OUT_6, EAST_WR_REQ_OUT_6, SOUTH_WR_REQ_OUT_6                     : STD_LOGIC;
+    SIGNAL PAYLOAD_FORM_NI_5                : NETWORK_ADDR;
+    SIGNAL VALID_FROM_NI_5, READY_FROM_NI_5 : STD_LOGIC;
+    SIGNAL PAYLOAD_FORM_NI_6                : NETWORK_ADDR;
+    SIGNAL VALID_FROM_NI_6, READY_FROM_NI_6 : STD_LOGIC;
+    
+    -- HELPER FUNCTIONS TO CREATE HEADER AND TAIL FLITS
+    FUNCTION CREATE_HEADER_FLIT(SOURCE, DESTINATION : INTEGER) RETURN FLIT IS
+        VARIABLE HEADER : FLIT;
+    BEGIN
+        HEADER(11 DOWNTO 10) := "00";                                          -- HEADER FLIT IDENTIFIER
+        HEADER(9 DOWNTO 5)   := STD_LOGIC_VECTOR(TO_UNSIGNED(SOURCE, 5));      -- SOURCE ADDRESS
+        HEADER(4 DOWNTO 0)   := STD_LOGIC_VECTOR(TO_UNSIGNED(DESTINATION, 5)); -- DESTINATION ADDRESS
+        RETURN HEADER;
+    END FUNCTION;
+    
+    FUNCTION CREATE_TAIL_FLIT(SOURCE, DESTINATION : INTEGER) RETURN FLIT IS
+        VARIABLE TAIL : FLIT;
+    BEGIN
+        TAIL(11 DOWNTO 10) := "10";                                          -- TAIL FLIT IDENTIFIER
+        TAIL(9 DOWNTO 5)   := STD_LOGIC_VECTOR(TO_UNSIGNED(SOURCE, 5));      -- SOURCE ADDRESS
+        TAIL(4 DOWNTO 0)   := STD_LOGIC_VECTOR(TO_UNSIGNED(DESTINATION, 5)); -- DESTINATION ADDRESS
+        RETURN TAIL;
+    END FUNCTION;
+
+BEGIN
+
+    -- INSTANTIATE THE UNIT UNDER TEST
+    UUT: ROUTERS_5_AND_6
+        GENERIC MAP(
+            ROUTER5_ADDRESS => ROUTER5_ADDR,
+            ROUTER6_ADDRESS => ROUTER6_ADDR
+        )
+        PORT MAP(
+            CLK                    => CLK,
+            RST                    => RST,
+            NORTH_DATA_IN_5        => NORTH_DATA_IN_5,
+            SOUTH_DATA_IN_5        => SOUTH_DATA_IN_5,
+            WEST_DATA_IN_5         => WEST_DATA_IN_5,
+            NORTH_DATA_IN_6        => NORTH_DATA_IN_6,
+            EAST_DATA_IN_6         => EAST_DATA_IN_6,
+            SOUTH_DATA_IN_6        => SOUTH_DATA_IN_6,
+            NORTH_CREDIT_IN_5      => NORTH_CREDIT_IN_5,
+            SOUTH_CREDIT_IN_5      => SOUTH_CREDIT_IN_5,
+            WEST_CREDIT_IN_5       => WEST_CREDIT_IN_5,
+            NORTH_CREDIT_IN_6      => NORTH_CREDIT_IN_6,
+            EAST_CREDIT_IN_6       => EAST_CREDIT_IN_6,
+            SOUTH_CREDIT_IN_6      => SOUTH_CREDIT_IN_6,
+            NORTH_WR_REQ_IN_5      => NORTH_WR_REQ_IN_5,
+            SOUTH_WR_REQ_IN_5      => SOUTH_WR_REQ_IN_5,
+            WEST_WR_REQ_IN_5       => WEST_WR_REQ_IN_5,
+            NORTH_WR_REQ_IN_6      => NORTH_WR_REQ_IN_6,
+            EAST_WR_REQ_IN_6       => EAST_WR_REQ_IN_6,
+            SOUTH_WR_REQ_IN_6      => SOUTH_WR_REQ_IN_6,
+            NORTH_DATA_OUT_5       => NORTH_DATA_OUT_5,
+            SOUTH_DATA_OUT_5       => SOUTH_DATA_OUT_5,
+            WEST_DATA_OUT_5        => WEST_DATA_OUT_5,
+            NORTH_DATA_OUT_6       => NORTH_DATA_OUT_6,
+            EAST_DATA_OUT_6        => EAST_DATA_OUT_6,
+            SOUTH_DATA_OUT_6       => SOUTH_DATA_OUT_6,
+            LOCAL_CREDIT_OUT_5     => LOCAL_CREDIT_OUT_5,
+            NORTH_CREDIT_OUT_5     => NORTH_CREDIT_OUT_5,
+            SOUTH_CREDIT_OUT_5     => SOUTH_CREDIT_OUT_5,
+            WEST_CREDIT_OUT_5      => WEST_CREDIT_OUT_5,
+            LOCAL_CREDIT_OUT_6     => LOCAL_CREDIT_OUT_6,
+            NORTH_CREDIT_OUT_6     => NORTH_CREDIT_OUT_6,
+            EAST_CREDIT_OUT_6      => EAST_CREDIT_OUT_6,
+            SOUTH_CREDIT_OUT_6     => SOUTH_CREDIT_OUT_6,
+            NORTH_WR_REQ_OUT_5     => NORTH_WR_REQ_OUT_5,
+            SOUTH_WR_REQ_OUT_5     => SOUTH_WR_REQ_OUT_5,
+            WEST_WR_REQ_OUT_5      => WEST_WR_REQ_OUT_5,
+            NORTH_WR_REQ_OUT_6     => NORTH_WR_REQ_OUT_6,
+            EAST_WR_REQ_OUT_6  	   => EAST_WR_REQ_OUT_6,
+            SOUTH_WR_REQ_OUT_6     => SOUTH_WR_REQ_OUT_6,
+            FLIT_DEST_ADDR_TO_NI_5 => FLIT_DEST_ADDR_TO_NI_5,
+            HEAD_OR_TAIL_5         => HEAD_OR_TAIL_5,
+            VALID_TO_NI_5          => VALID_TO_NI_5,
+            READY_FROM_NI_5        => READY_FROM_NI_5,
+            READY_TO_NI_5          => READY_TO_NI_5,                                    
+            PAYLOAD_FORM_NI_5      => PAYLOAD_FORM_NI_5,
+            VALID_FROM_NI_5        => VALID_FROM_NI_5,
+            FLIT_DEST_ADDR_TO_NI_6 => FLIT_DEST_ADDR_TO_NI_6,
+            HEAD_OR_TAIL_6         => HEAD_OR_TAIL_6,
+            VALID_TO_NI_6          => VALID_TO_NI_6,
+            READY_FROM_NI_6        => READY_FROM_NI_6,
+            READY_TO_NI_6          => READY_TO_NI_6,                                    
+            PAYLOAD_FORM_NI_6      => PAYLOAD_FORM_NI_6,
+            VALID_FROM_NI_6        => VALID_FROM_NI_6
+        );
+
+    -- Clock generation process
+    CLK_PROCESS: PROCESS
+    BEGIN
+        CLK <= '0';
+        WAIT FOR CLK_PERIOD/2;
+        CLK <= '1';
+        WAIT FOR CLK_PERIOD/2;
+    END PROCESS;
+
+    -- STIMULUS PROCESS
+    STIM_PROC: PROCESS
+    BEGIN
+        -- INITIALIZE ALL INPUTS
+        RST <= '1';
+        NORTH_DATA_IN_5 <= (OTHERS => '0');
+        SOUTH_DATA_IN_5 <= (OTHERS => '0');
+        WEST_DATA_IN_5  <= (OTHERS => '0');
+        NORTH_DATA_IN_6 <= (OTHERS => '0');
+        EAST_DATA_IN_6  <= (OTHERS => '0');
+        SOUTH_DATA_IN_6 <= (OTHERS => '0');
+        
+        NORTH_CREDIT_IN_5 <= '0';
+        SOUTH_CREDIT_IN_5 <= '0';
+        WEST_CREDIT_IN_5  <= '0';
+        NORTH_CREDIT_IN_6 <= '0';
+        EAST_CREDIT_IN_6  <= '0';
+        SOUTH_CREDIT_IN_6 <= '0';
+        
+        NORTH_WR_REQ_IN_5 <= '0';
+        SOUTH_WR_REQ_IN_5 <= '0';
+        WEST_WR_REQ_IN_5  <= '0';
+        NORTH_WR_REQ_IN_6 <= '0';
+        EAST_WR_REQ_IN_6  <= '0';
+        SOUTH_WR_REQ_IN_6 <= '0';
+
+        FLIT_DEST_ADDR_TO_NI_5 <= (OTHERS => '0');
+        HEAD_OR_TAIL_5         <= '0';
+        VALID_TO_NI_5          <= '0';
+        READY_TO_NI_5          <= '0';
+        FLIT_DEST_ADDR_TO_NI_6 <= (OTHERS => '0');
+        HEAD_OR_TAIL_6         <= '0';
+        VALID_TO_NI_6          <= '0';
+        READY_TO_NI_6          <= '0';
+        
+        -- RESET THE SYSTEM
+        WAIT FOR CLK_PERIOD * 2;
+        RST <= '0';
+        WAIT FOR CLK_PERIOD;
+        
+        -- SIMULATE THE 4×4 MESH ENVIROMENT
+        -- FOR SIMPLICITY WE ASSUME THAT ALL ADJASENT ROUTERS INPUT BUFFER ARE AVAILABLE!
+        NORTH_CREDIT_IN_5 <= '0';
+        SOUTH_CREDIT_IN_5 <= '0';
+        WEST_CREDIT_IN_5  <= '0';
+        NORTH_CREDIT_IN_6 <= '0';
+        EAST_CREDIT_IN_6  <= '0';
+        SOUTH_CREDIT_IN_6 <= '0';
+        
+        -- TEST 1: NODE 1 TO NODE 9
+        
+        -- THIS PACKET WOULD ENTER THROUGH ROUTER 5'S NORTH INPUT AND GOES OUT THROUGH ROUTER 5'S SOUTH OUTPUT
+        -- SIMULATE HEADER FLIT COMES FROM 1'ST ROUTER AND GOES TO 9'TH
+        NORTH_DATA_IN_5 <= CREATE_HEADER_FLIT(1, 9);
+        NORTH_WR_REQ_IN_5 <= '1';
+        WAIT FOR CLK_PERIOD;
+        NORTH_WR_REQ_IN_5 <= '0';
+        WAIT FOR CLK_PERIOD;
+        
+        -- SIMULATE TAIL FLIT COMES FROM 1'ST ROUTER AND GOES TO 9'TH
+        NORTH_DATA_IN_5 <= CREATE_TAIL_FLIT(1, 9);
+        NORTH_WR_REQ_IN_5 <= '1';
+        WAIT FOR CLK_PERIOD;
+        NORTH_WR_REQ_IN_5 <= '0';
+        WAIT FOR CLK_PERIOD * 10;  -- ALLOW TIME FOR ROUTING
+        
+        -- TEST 2: NODE 7 TO NODE 4
+        
+        -- THIS PACKET WOULD ENTER THROUGH ROUTER 6'S EAST INPUT AND GOES OUT THROUGH ROUTER 5'S WEST OUTPUT
+        -- SIMULATE HEADER FLIT COMES FROM 7'TH ROUTER AND GOES TO 4'TH
+        EAST_DATA_IN_6 <= CREATE_HEADER_FLIT(7, 4);
+        EAST_WR_REQ_IN_6 <= '1';
+        WAIT FOR CLK_PERIOD;
+        EAST_WR_REQ_IN_6 <= '0';
+        WAIT FOR CLK_PERIOD;
+        
+        -- SIMULATE TAIL FLIT COMES FROM 7'TH ROUTER AND GOES TO 4'TH
+        EAST_DATA_IN_6 <= CREATE_TAIL_FLIT(7, 4);
+        EAST_WR_REQ_IN_6 <= '1';
+        WAIT FOR CLK_PERIOD;
+        EAST_WR_REQ_IN_6 <= '0';
+        WAIT FOR CLK_PERIOD * 10;  -- ALLOW TIME FOR ROUTING
+        
+        -- TEST 3: NODE 10 TO NODE 1
+        
+        -- THIS PACKET WOULD ENTER THROUGH ROUTER 6'S SOUTH INPUT AND GOES OUT THROUGH ROUTER 5'S NORTH OUTPUT
+        -- SIMULATE HEADER FLIT COMES FROM 10'TH ROUTER AND GOES TO 1'ST
+        SOUTH_DATA_IN_6 <= CREATE_HEADER_FLIT(10, 1);
+        SOUTH_WR_REQ_IN_6 <= '1';
+        WAIT FOR CLK_PERIOD;
+        SOUTH_WR_REQ_IN_6 <= '0';
+        WAIT FOR CLK_PERIOD;
+        
+        -- SIMULATE TAIL FLIT COMES FROM 10'TH ROUTER AND GOES TO 1'ST
+        SOUTH_DATA_IN_6 <= CREATE_TAIL_FLIT(10, 1);
+        SOUTH_WR_REQ_IN_6 <= '1';
+        WAIT FOR CLK_PERIOD;
+        SOUTH_WR_REQ_IN_6 <= '0';
+        WAIT FOR CLK_PERIOD * 10;  -- ALLOW TIME FOR ROUTING
+        
+        -- TEST 4: NODE 9 TO NODE 2
+        
+        -- THIS PACKET WOULD ENTER THROUGH ROUTER 5'S SOUTH INPUT AND GOES OUT THROUGH ROUTER 6'S NORTH OUTPUT
+        -- SIMULATE HEADER FLIT COMES FROM 9'TH ROUTER AND GOES TO 2'ND
+        SOUTH_DATA_IN_5 <= CREATE_HEADER_FLIT(9, 2);
+        SOUTH_WR_REQ_IN_5 <= '1';
+        WAIT FOR CLK_PERIOD;
+        SOUTH_WR_REQ_IN_5 <= '0';
+        WAIT FOR CLK_PERIOD;
+        
+        -- SIMULATE TAIL FLIT COMES FROM 9'TH ROUTER AND GOES TO 2'ND
+        SOUTH_DATA_IN_5 <= CREATE_TAIL_FLIT(9, 2);
+        SOUTH_WR_REQ_IN_5 <= '1';
+        WAIT FOR CLK_PERIOD;
+        SOUTH_WR_REQ_IN_5 <= '0';
+        WAIT FOR CLK_PERIOD * 10;  -- ALLOW TIME FOR ROUTING
+
+        -- SIMULTANEOUS TESTS: LAST 3 TESTS OCCUR AT THE SAME TIME
+
+        -- TESTS 5, 6, AND 7 ALL HAPPEN SIMUlTANEOUSLY
+	-- NODE 6 LOCAL INJECTION TO NODE 1
+        -- NODE 10 TO NODE 9 
+        -- NODE 2  TO NODE 9 
+        
+	-- SET UP ALL 3 PACKET INPUTS SIMULTANEOUSLY
+	-- HEADER FLIT INJECTION TO THE 6'TH ROUTER INPUT BUFFER
+	FLIT_DEST_ADDR_TO_NI_6 <= "00001";               -- TEST 5: HEADER
+        HEAD_OR_TAIL_6         <= '0';
+        VALID_TO_NI_6          <= '1';
+        READY_TO_NI_6          <= '1';
+        WAIT FOR CLK_PERIOD;
+        VALID_TO_NI_6          <= '0';
+        READY_TO_NI_6          <= '0';
+        WAIT FOR CLK_PERIOD * 2;  -- ALLOW TIME FOR ROUTING
+        
+        SOUTH_DATA_IN_6 <= CREATE_HEADER_FLIT(10, 9);    -- TEST 6: HEADER
+        NORTH_DATA_IN_6 <= CREATE_HEADER_FLIT(2, 9);     -- TEST 7: HEADER
+        
+        
+        -- ASSERT ALL WRITE REQUESTS SIMULTANEOUSLY
+        SOUTH_WR_REQ_IN_6 <= '1';
+        NORTH_WR_REQ_IN_6 <= '1';
+        
+        WAIT FOR CLK_PERIOD;
+        
+        -- DEASSERT WRITE REQUESTS AND LOCAL INJECTION
+        SOUTH_WR_REQ_IN_6 <= '0';
+        NORTH_WR_REQ_IN_6 <= '0';
+        VALID_TO_NI_6     <= '0';
+        READY_TO_NI_6     <= '0';
+        
+        WAIT FOR CLK_PERIOD * 2;
+        
+        -- HEADER FLIT INJECTION TO THE 6'TH ROUTER INPUT BUFFER
+	FLIT_DEST_ADDR_TO_NI_6 <= "00001";               -- TEST 5: TAIL
+        HEAD_OR_TAIL_6 <= '1';
+        VALID_TO_NI_6 <= '1';
+        READY_TO_NI_6 <= '1';
+	WAIT FOR CLK_PERIOD;
+        VALID_TO_NI_6          <= '0';
+        READY_TO_NI_6          <= '0';
+        WAIT FOR CLK_PERIOD * 2;  -- ALLOW TIME FOR ROUTING
+
+        SOUTH_DATA_IN_6 <= CREATE_TAIL_FLIT(10, 9);      -- TEST 6: TAIL
+        NORTH_DATA_IN_6 <= CREATE_TAIL_FLIT(2, 9);       -- TEST 7: TAIL
+        
+        
+        -- ASSERT WRITE REQUEST FOR TAIL FLITS
+        SOUTH_WR_REQ_IN_6 <= '1';
+        NORTH_WR_REQ_IN_6 <= '1';
+        
+        WAIT FOR CLK_PERIOD;
+        
+        -- DEASSERT ALL SIGNALS
+        SOUTH_WR_REQ_IN_6 <= '0';
+        NORTH_WR_REQ_IN_6 <= '0';
+        
+        
+        WAIT FOR CLK_PERIOD * 15;  -- ALLOW TIME FOR CONCURRENT ROUTING
+        
+        REPORT "ALL TEST SEQUENCES COMPLETED, INCLUDING SIMULTANUS PACKET INJECTION.";
+        WAIT;
+    END PROCESS;
+
+END ARCHITECTURE BEHAVIORAL;
